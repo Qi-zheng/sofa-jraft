@@ -562,6 +562,7 @@ public class StoreEngine implements Lifecycle<StoreEngineOptions> {
                 this.metricsScheduler = StoreEngineHelper.createMetricsScheduler();
             }
             // start kv store metrics reporter
+            //TODO 研究指标上报的用户
             this.kvMetricsReporter = Slf4jReporter.forRegistry(KVMetrics.metricRegistry()) //
                 .prefixedWith("store_" + this.storeId) //
                 .withLoggingLevel(Slf4jReporter.LoggingLevel.INFO) //

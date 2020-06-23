@@ -22,14 +22,14 @@ import java.util.List;
 import com.alipay.sofa.jraft.conf.Configuration;
 
 /**
- * A ballot to vote.
+ * A ballot(投标用纸) to vote.
  *
  * @author boyan (boyan@alibaba-inc.com)
  *
  * 2018-Mar-15 2:29:11 PM
  */
 public class Ballot {
-
+    //位置线索
     public static final class PosHint {
         int pos0 = -1; // position in current peers
         int pos1 = -1; // position in old peers
@@ -47,8 +47,9 @@ public class Ballot {
             this.found = found;
         }
     }
-
+    //未收到回复的同级
     private final List<UnfoundPeerId> peers    = new ArrayList<>();
+    //法定人数
     private int                       quorum;
     private final List<UnfoundPeerId> oldPeers = new ArrayList<>();
     private int                       oldQuorum;
@@ -70,7 +71,7 @@ public class Ballot {
                 this.peers.add(new UnfoundPeerId(peer, index++, false));
             }
         }
-
+        //NOTE 定义法定人数规则
         this.quorum = this.peers.size() / 2 + 1;
         if (oldConf == null) {
             return true;
@@ -97,6 +98,10 @@ public class Ballot {
         return peers.get(posHint);
     }
 
+    /**
+     * NOTE 承认是否到法定人数了
+     */
+    //TODO 重点理解的方法
     public PosHint grant(final PeerId peerId, final PosHint hint) {
         UnfoundPeerId peer = findPeer(peerId, this.peers, hint.pos0);
         if (peer != null) {

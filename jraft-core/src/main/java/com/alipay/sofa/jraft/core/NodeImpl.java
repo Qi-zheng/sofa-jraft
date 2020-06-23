@@ -582,6 +582,7 @@ public class NodeImpl implements Node, RaftServerService {
         Utils.runInThread(() -> doSnapshot(null));
     }
 
+    //TODO
     private void handleElectionTimeout() {
         boolean doUnlock = true;
         this.writeLock.lock();
@@ -877,6 +878,7 @@ public class NodeImpl implements Node, RaftServerService {
         // Init timers
         final String suffix = getNodeId().toString();
         String name = "JRaft-VoteTimer-" + suffix;
+        //NOTE 这里要注意，
         this.voteTimer = new RepeatedTimer(name, this.options.getElectionTimeoutMs(), TIMER_FACTORY.getVoteTimer(
             this.options.isSharedVoteTimer(), name)) {
 
@@ -891,6 +893,7 @@ public class NodeImpl implements Node, RaftServerService {
             }
         };
         name = "JRaft-ElectionTimer-" + suffix;
+        //NOTE 是raft中选举随机时间的的点
         this.electionTimer = new RepeatedTimer(name, this.options.getElectionTimeoutMs(),
             TIMER_FACTORY.getElectionTimer(this.options.isSharedElectionTimer(), name)) {
 
@@ -1041,7 +1044,7 @@ public class NodeImpl implements Node, RaftServerService {
             return false;
         }
 
-        // set state to follower
+        //NOTE set state to follower
         this.state = State.STATE_FOLLOWER;
 
         if (LOG.isInfoEnabled()) {
@@ -1063,7 +1066,7 @@ public class NodeImpl implements Node, RaftServerService {
             return false;
         }
 
-        // Now the raft node is started , have to acquire the writeLock to avoid race
+        //NOTE  如果配置的单节点则直接选自己为leader Now the raft node is started , have to acquire the writeLock to avoid race
         // conditions
         this.writeLock.lock();
         if (this.conf.isStable() && this.conf.getConf().size() == 1 && this.conf.getConf().contains(this.serverId)) {
@@ -1084,7 +1087,7 @@ public class NodeImpl implements Node, RaftServerService {
         electSelf();
     }
 
-    // should be in writeLock
+    //NOTE 这一步就是确认自己的领导者身分的步骤 should be in writeLock
     private void electSelf() {
         long oldTerm;
         try {
@@ -2473,7 +2476,7 @@ public class NodeImpl implements Node, RaftServerService {
             }
         }
     }
-
+    //NOTE 处理预投票响应
     public void handlePreVoteResponse(final PeerId peerId, final long term, final RequestVoteResponse response) {
         boolean doUnlock = true;
         this.writeLock.lock();
@@ -2537,7 +2540,7 @@ public class NodeImpl implements Node, RaftServerService {
         }
     }
 
-    // in writeLock
+    //NOTE 投票过程 in writeLock
     private void preVote() {
         long oldTerm;
         try {
@@ -2562,7 +2565,7 @@ public class NodeImpl implements Node, RaftServerService {
         boolean doUnlock = true;
         this.writeLock.lock();
         try {
-            // pre_vote need defense ABA after unlock&writeLock
+            // pre_vote need defense 抵御 ABA after unlock&writeLock
             if (oldTerm != this.currTerm) {
                 LOG.warn("Node {} raise term {} when get lastLogId.", getNodeId(), this.currTerm);
                 return;
@@ -2600,6 +2603,7 @@ public class NodeImpl implements Node, RaftServerService {
         }
     }
 
+    //TODO
     private void handleVoteTimeout() {
         this.writeLock.lock();
         if (this.state != State.STATE_CANDIDATE) {

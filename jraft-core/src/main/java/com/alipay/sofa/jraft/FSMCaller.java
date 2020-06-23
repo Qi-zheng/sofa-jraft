@@ -24,7 +24,7 @@ import com.alipay.sofa.jraft.option.FSMCallerOptions;
 import com.alipay.sofa.jraft.util.Describer;
 
 /**
- * Finite state machine caller.
+ * Finite(有限) state machine caller.
  *
  * @author boyan (boyan@alibaba-inc.com)
  *
