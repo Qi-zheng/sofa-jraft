@@ -1682,6 +1682,7 @@ public class NodeImpl implements Node, RaftServerService {
         return monotonicNowMs - this.lastLeaderTimestamp < this.options.getLeaderLeaseTimeoutMs();
     }
 
+    //相当于实现了租约机制
     private boolean isCurrentLeaderValid() {
         return Utils.monotonicMs() - this.lastLeaderTimestamp < this.options.getElectionTimeoutMs();
     }
