@@ -513,7 +513,7 @@ public class Replicator implements ThreadId.OnError {
         if (this.inflights.size() > this.raftOptions.getMaxReplicatorInflightMsgs()) {
             return -1L;
         }
-        // Last request should be a AppendEntries request and has some entries.
+        // Last request should be a AppendEntries request and has some entries.  找出最近已经发送的一批日志，计算出下一批要发送的日志日志索引
         if (this.rpcInFly != null && this.rpcInFly.isSendingLogEntries()) {
             return this.rpcInFly.startIndex + this.rpcInFly.count;
         }
@@ -1188,13 +1188,13 @@ public class Replicator implements ThreadId.OnError {
             while (!holdingQueue.isEmpty()) {
                 final RpcResponse queuedPipelinedResponse = holdingQueue.peek();
 
-                // Sequence mismatch, waiting for next response.
+                // Sequence mismatch, waiting for next response.  //这里是为了保证日志确认的顺序性，如果后发的请求先到则不处理
                 if (queuedPipelinedResponse.seq != r.requiredNextSeq) {
                     if (processed > 0) {
                         if (isLogDebugEnabled) {
                             sb.append("has processed ").append(processed).append(" responses,");
                         }
-                        break;
+                        break;  //如果后发的请求先到则直接退出循环
                     } else {
                         // Do not processed any responses, UNLOCK id and return.
                         continueSendEntries = false;
@@ -1213,6 +1213,7 @@ public class Replicator implements ThreadId.OnError {
                     }
                     continue;
                 }
+                //如果飞行中的序列号与正常请求的序列号不等，则出现了，中间有确认了的日志没有通知到inflight,则需要重新探测follower节点的日志位置
                 if (inflight.seq != queuedPipelinedResponse.seq) {
                     // reset state
                     LOG.warn(
@@ -1395,7 +1396,7 @@ public class Replicator implements ThreadId.OnError {
                     r.options.getPeerId());
             }
         } else {
-            // The request is probe request, change the state into Replicate.
+            // The request is probe request, change the state into Replicate.  这是控测成功的标识
             r.state = State.Replicate;
         }
         r.nextIndex += entriesSize;

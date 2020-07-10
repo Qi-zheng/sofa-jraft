@@ -240,6 +240,11 @@ public class FSMCallerImpl implements FSMCaller {
         return true;
     }
 
+    /**
+     * 用一外事件驱动的模式来完成日志的提交
+     * @param committedIndex committed log index
+     * @return
+     */
     @Override
     public boolean onCommitted(final long committedIndex) {
         return enqueueTask((task, sequence) -> {

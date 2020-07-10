@@ -92,6 +92,7 @@ public class BallotBox implements Lifecycle<BallotBoxOptions>, Describer {
     /**
      * Called by leader, otherwise the behavior is undefined
      * Set logs in [first_log_index, last_log_index] are stable at |peer|.
+     * 这一步的校验比较慎重，因为一旦确认在集群里就不能修改
      */
     public boolean commitAt(final long firstLogIndex, final long lastLogIndex, final PeerId peer) {
         // TODO  use lock-free algorithm here?
