@@ -878,7 +878,7 @@ public class NodeImpl implements Node, RaftServerService {
         // Init timers
         final String suffix = getNodeId().toString();
         String name = "JRaft-VoteTimer-" + suffix;
-        //NOTE 这里要注意，
+        //NOTE 选举投票定时器
         this.voteTimer = new RepeatedTimer(name, this.options.getElectionTimeoutMs(), TIMER_FACTORY.getVoteTimer(
             this.options.isSharedVoteTimer(), name)) {
 
@@ -893,7 +893,7 @@ public class NodeImpl implements Node, RaftServerService {
             }
         };
         name = "JRaft-ElectionTimer-" + suffix;
-        //NOTE 是raft中选举随机时间的的点
+        //NOTE 是raft中选举随机时间的的点，预选举定时器
         this.electionTimer = new RepeatedTimer(name, this.options.getElectionTimeoutMs(),
             TIMER_FACTORY.getElectionTimer(this.options.isSharedElectionTimer(), name)) {
 
@@ -908,6 +908,7 @@ public class NodeImpl implements Node, RaftServerService {
             }
         };
         name = "JRaft-StepDownTimer-" + suffix;
+        //领导者降级定时器
         this.stepDownTimer = new RepeatedTimer(name, this.options.getElectionTimeoutMs() >> 1,
             TIMER_FACTORY.getStepDownTimer(this.options.isSharedStepDownTimer(), name)) {
 
@@ -917,6 +918,7 @@ public class NodeImpl implements Node, RaftServerService {
             }
         };
         name = "JRaft-SnapshotTimer-" + suffix;
+        //快照定时器
         this.snapshotTimer = new RepeatedTimer(name, this.options.getSnapshotIntervalSecs() * 1000,
             TIMER_FACTORY.getSnapshotTimer(this.options.isSharedSnapshotTimer(), name)) {
 
@@ -1044,7 +1046,7 @@ public class NodeImpl implements Node, RaftServerService {
             return false;
         }
 
-        //NOTE set state to follower
+        //NOTE set state to follower  设置本地节点为follower角色
         this.state = State.STATE_FOLLOWER;
 
         if (LOG.isInfoEnabled()) {
@@ -1066,7 +1068,8 @@ public class NodeImpl implements Node, RaftServerService {
             return false;
         }
 
-        //NOTE  如果配置的单节点则直接选自己为leader Now the raft node is started , have to acquire the writeLock to avoid race
+        //NOTE  如果配置的单节点则直接选自己为leader
+        // Now the raft node is started , have to acquire the writeLock to avoid race
         // conditions
         this.writeLock.lock();
         if (this.conf.isStable() && this.conf.getConf().size() == 1 && this.conf.getConf().contains(this.serverId)) {
@@ -1648,6 +1651,7 @@ public class NodeImpl implements Node, RaftServerService {
 
                 doUnlock = true;
                 this.writeLock.lock();
+                //判断要选leader的节点是否日志有自己的全， 这里是一个重要的机制保证raft的提交过的日志一定不会被覆盖
                 final LogId requestLastLogId = new LogId(request.getLastLogIndex(), request.getLastLogTerm());
                 granted = requestLastLogId.compareTo(lastLogId) >= 0;
 
@@ -1881,14 +1885,14 @@ public class NodeImpl implements Node, RaftServerService {
                     .build();
             }
 
-            updateLastLeaderTimestamp(Utils.monotonicMs());
+            updateLastLeaderTimestamp(Utils.monotonicMs());   //配合前面说用户的选举定时器里的租约的机制来使用
 
             if (entriesCount > 0 && this.snapshotExecutor != null && this.snapshotExecutor.isInstallingSnapshot()) {
                 LOG.warn("Node {} received AppendEntriesRequest while installing snapshot.", getNodeId());
                 return RpcResponseFactory.newResponse(RaftError.EBUSY, "Node %s:%s is installing snapshot.",
                     this.groupId, this.serverId);
             }
-
+            //这里是对被选举为leader的节点发来的探针进行检验以访问日志不完整的节点选举为leader而导致已经确认的日志被覆盖的问题
             final long prevLogIndex = request.getPrevLogIndex();
             final long prevLogTerm = request.getPrevLogTerm();
             final long localPrevLogTerm = this.logManager.getTerm(prevLogIndex);

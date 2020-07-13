@@ -720,7 +720,7 @@ public class Replicator implements ThreadId.OnError {
                 this.appendEntriesCounter++;
                 this.state = State.Probe;
                 final int stateVersion = this.version;
-                final int seq = getAndIncrementReqSeq();
+                final int seq = getAndIncrementReqSeq();  //自增序列号，只指对当前节点，不是全局的
                 final Future<Message> rpcFuture = this.rpcService.appendEntries(this.options.getPeerId().getEndpoint(),
                     request, -1, new RpcResponseClosureAdapter<AppendEntriesResponse>() {
 
@@ -1163,7 +1163,7 @@ public class Replicator implements ThreadId.OnError {
             id.unlock();
             return;
         }
-
+        //因为回来的消息没有顺序性所以要使用优先队列
         final PriorityQueue<RpcResponse> holdingQueue = r.pendingResponses;
         holdingQueue.add(new RpcResponse(reqType, seq, status, request, response, rpcSendTime));
 
@@ -1374,7 +1374,7 @@ public class Replicator implements ThreadId.OnError {
             sb.append(", success");
             LOG.debug(sb.toString());
         }
-        // success
+        // success  这里表示已经发送信息成功，然后提交指令到状态机
         if (response.getTerm() != r.options.getTerm()) {
             r.resetInflights();
             r.state = State.Probe;
@@ -1388,7 +1388,7 @@ public class Replicator implements ThreadId.OnError {
         final int entriesSize = request.getEntriesCount();
         if (entriesSize > 0) {
             if (r.options.getReplicatorType().isFollower()) {
-                // Only commit index when the response is from follower.
+                // Only commit index when the response is from follower.  提交子节对应的索引号到有限状态机
                 r.options.getBallotBox().commitAt(r.nextIndex, r.nextIndex + entriesSize - 1, r.options.getPeerId());
             }
             if (LOG.isDebugEnabled()) {

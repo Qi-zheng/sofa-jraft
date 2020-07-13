@@ -241,7 +241,7 @@ public class FSMCallerImpl implements FSMCaller {
     }
 
     /**
-     * 用一外事件驱动的模式来完成日志的提交
+     * 用一个事件驱动的模式来完成日志的提交
      * @param committedIndex committed log index
      * @return
      */
